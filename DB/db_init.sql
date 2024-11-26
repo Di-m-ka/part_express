@@ -2,7 +2,8 @@ create table "user" (
     id int,
     email varchar(64),
     name varchar (256),
-    token varchar (32)
+    token varchar (32),
+    is_deleted int
 );
 comment on table "user" is 'Пользователи в системы';
 comment on column "user".id is 'Уникальный идентификатор пользователя';
@@ -18,7 +19,84 @@ ALTER TABLE  "user" ADD CONSTRAINT user_uq_name unique (name);
 ALTER TABLE "user"  ALTER COLUMN email SET NOT NULL;
 ALTER TABLE "user"  ALTER COLUMN name SET NOT NULL;
 
-create table role
+CREATE OR REPLACE function user_create (p_email "user".email%TYPE, p_name "user".name%TYPE, p_token "user".token%TYPE) returns int AS $$
+       DECLARE v_id int;
+        BEGIN
+               insert into "user" (email, name, token) values (p_email, p_name, p_token)  RETURNING id into v_id;
+               RETURN v_id;
+        END;
+$$ LANGUAGE plpgsql;
+
+create function user_update (id, email , name, token );
+create function user_delete (id);
+
+create table user_log (
+    id int,
+    email varchar(64),
+    name varchar (256),
+    token varchar (32),
+    is_deleted int,
+    log_date timestamp (0),
+    log_type char(1),
+    changed_by int);
+
+CREATE OR REPLACE FUNCTION user_log_fn()
+RETURNS trigger AS $body$
+BEGIN
+   if (TG_OP in ('INSERT','UPDATE')) then
+       INSERT INTO user_log (
+            id,
+            email,
+            name ,
+            token ,
+            is_deleted,
+            log_date ,
+            log_type ,
+            changed_by
+       )
+       VALUES(
+           NEW.id,
+           NEW.email,
+           NEW.name,
+           NEW.token,
+           NEW.is_deleted,
+           CURRENT_TIMESTAMP,
+           left(TG_OP,1),
+           current_setting('var.logged_user')
+       );
+       RETURN NEW;
+   else
+       INSERT INTO user_log (
+            id,
+            email,
+            name ,
+            token ,
+            is_deleted,
+            log_date ,
+            log_type ,
+            changed_by
+       )
+       VALUES(
+           OLD.id,
+           OLD.email,
+           OLD.name,
+           OLD.token,
+           OLD.is_deleted,
+           CURRENT_TIMESTAMP,
+           left(TG_OP,1),
+           current_setting('var.logged_user')
+       );
+       RETURN OLD;
+   end if;
+END;
+$body$
+LANGUAGE plpgsql;
+
+CREATE TRIGGER user_log_tr
+AFTER INSERT OR UPDATE OR DELETE ON "user"
+FOR EACH ROW EXECUTE FUNCTION user_log_fn();
+
+create table "role"
 (
     id int,
     name varchar(64),
