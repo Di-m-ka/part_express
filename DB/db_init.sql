@@ -1,28 +1,22 @@
-select * from information_schema.tables where table_schema = 'public'
-
-create table user (
+create table "user" (
     id int,
     email varchar(64),
     name varchar (256),
     token varchar (32)
 );
-comment on table user is 'Пользователи в системы';
-comment on column user.id is 'Уникальный идентификатор пользователя';
-comment on column user.email is 'Логин и он же email пользователя';
-comment on column user.name is 'Ник пользователя';
-comment on column user.token is 'Захэшированный пароль пользователя';
-insert into role (id, email, name, token) values (1, 'hddtrest@mail.ru', 'Дима 241', 'kjshdugfisubk');
+comment on table "user" is 'Пользователи в системы';
+comment on column "user".id is 'Уникальный идентификатор пользователя';
+comment on column "user".email is 'Логин и он же email пользователя';
+comment on column "user".name is 'Ник пользователя';
+comment on column "user".token is 'Захэшированный пароль пользователя';
+insert into "user" (id, email, name, token) values (1, 'admin@example.ru', 'Garage 241', 'kjshdugfisubk');
 
-
-create table user_x_role
-(
-    user_id int,
-    role_id int
-);
-comment on table user_x_role is 'Принадлежность пользователя роли';
-comment on column user_x_role.user_id is 'Уникальный идентификатор пользователя';
-comment on column user_x_role.role_id is 'Уникальный идентификатор роли';
-insert into role (user_id, role_id) values (1, 1);
+create sequence user_seq  AS int  INCREMENT  BY 1  START 10 NO CYCLE OWNED BY "user".id;
+ALTER TABLE  "user" ADD CONSTRAINT user_pk primary key (id);
+ALTER TABLE  "user" ADD CONSTRAINT user_uq_email unique (email);
+ALTER TABLE  "user" ADD CONSTRAINT user_uq_name unique (name);
+ALTER TABLE "user"  ALTER COLUMN email SET NOT NULL;
+ALTER TABLE "user"  ALTER COLUMN name SET NOT NULL;
 
 create table role
 (
@@ -37,6 +31,22 @@ comment on column role.description is 'Описание роли';
 insert into role (id, name, description) values (1, 'Администратор', 'Полный доступ к функционалу сайта');
 insert into role (id, name, description) values (2, 'Склад', 'Управляет комплектацией запчастей на складе');
 insert into role (id, name, description) values (3, 'Сборщик', 'Изготавливает продукт из запчастей');
+ALTER TABLE role ADD CONSTRAINT role_pk primary key (id);
+ALTER TABLE role ALTER COLUMN name SET NOT NULL;
+create sequence role_seq  AS int  INCREMENT  BY 1  START 10 NO CYCLE OWNED BY role.id;
+
+create table user_x_role
+(
+    user_id int,
+    role_id int
+);
+comment on table user_x_role is 'Принадлежность пользователя роли';
+comment on column user_x_role.user_id is 'Уникальный идентификатор пользователя';
+comment on column user_x_role.role_id is 'Уникальный идентификатор роли';
+insert into user_x_role (user_id, role_id) values (1, 1);
+ALTER TABLE user_x_role ADD CONSTRAINT user_x_role_pk primary key (user_id,role_id);
+ALTER TABLE user_x_role ADD CONSTRAINT user_fk_user_id foreign key (user_id) references "user" (id) on delete   no action;
+ALTER TABLE user_x_role ADD CONSTRAINT user_fk_role_id foreign key (role_id) references "role" (id) on delete   no action;
 
 create table object_type (
     id int,
@@ -112,18 +122,18 @@ comment on column product_x_part.part_id is 'Ссылка на запчасть'
 comment on column product_x_part.count is 'Расчетное кол-во запчастей на продукт';
 comment on column product_x_part.unit_id is 'Расчетная единица измерения кол-ва запчастей';
 
-create table order
+create table "order"
 (
     id bigint,
     user_id int,
     state_id int,
     product_id int
 );
-comment on table order is 'Заказ на изготовление';
-comment on column order.id is 'Уникальный идентификатор заказа';
-comment on column order.user_id is 'Ссылка на изготовителя продукта';
-comment on column order.state_id is 'Ссылка на статус изготовления продукта';
-comment on column order.product_id is 'Ссылка на продукт';
+comment on table "order" is 'Заказ на изготовление';
+comment on column "order".id is 'Уникальный идентификатор заказа';
+comment on column "order".user_id is 'Ссылка на изготовителя продукта';
+comment on column "order".state_id is 'Ссылка на статус изготовления продукта';
+comment on column "order".product_id is 'Ссылка на продукт';
 
 create table order_hist (
     id bigint,
@@ -170,5 +180,3 @@ create table image (
     path varchar(32)
 );
 comment on table image is 'Изображения';
-
-
